@@ -8,12 +8,19 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<TodoRepository>();
 
+builder.Services.AddCors();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    app.UseCors(opt =>
+    {
+        opt.AllowAnyOrigin();
+    });
 }
 
 app.UseHttpsRedirection();

@@ -15,6 +15,7 @@
 
 	<Target Name="OpenAPI" AfterTargets="PostBuildEvent">
 		<Exec Command="dotnet tool restore" />
+		<!--TODO: change settings for generating the client  -->
 		<Exec Command="dotnet swagger tofile --output ./openapi.json $(OutputPath)\$(AssemblyName).dll v1" />
 	</Target>
 </Project>
