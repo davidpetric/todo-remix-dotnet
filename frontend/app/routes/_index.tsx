@@ -34,21 +34,23 @@ export default function Index() {
   };
 
   return (
-    <div className="p-10">
+    <div className="p-10 text-xl">
       <div className="max-h-100 overflow-auto">
         {todos.map((t, i) => (
           <div
             key={t.id}
-            className={"m-2 " + `${t.done ? "line-through" : ""}`}
+            className={" m-10 " + `${t.done ? "line-through" : ""}`}
           >
             <input
+              className="accent-green-400"
               type="checkbox"
               checked={t.done ?? false}
               onChange={(e) => handleCheckboxChange(t.id, e.target.checked)}
             ></input>
-            <span>{t.todo}</span>
+            <span className="pl-2">{t.todo}</span>
 
             <span
+              className="pl-2"
               onClick={() => {
                 setTodos((prevState) =>
                   prevState.filter((prevItem) => prevItem.id !== t.id)
@@ -61,7 +63,7 @@ export default function Index() {
         ))}
       </div>
 
-      <div className="flex gap-5 ">
+      <div className="flex gap-10">
         <input
           value={todoInput}
           onChange={(e) => {
