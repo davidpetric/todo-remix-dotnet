@@ -1,13 +1,15 @@
+using backend.Data;
+using Microsoft.AspNetCore.Mvc;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<TodoRepository>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -16,29 +18,37 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapPost("/todos", ([FromServices] TodoRepository repo, [FromBody] Todo newTodo) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var successOrErrror = repo.Insert(newTodo);
+    return successOrErrror.IsError ? Results.BadRequest() : Results.Ok();
 })
-.WithName("GetWeatherForecast")
+.WithName("CreateTodo")
 .WithOpenApi();
+
+app.MapGet("/todos/{id}", ([FromServices] TodoRepository repo, [FromRoute] string id) =>
+{
+    var errorOrTodo = repo.Retrieve(id);
+
+    return errorOrTodo.IsError
+        ? Results.BadRequest(errorOrTodo.Errors)
+        : Results.Ok(errorOrTodo.Value);
+})
+.WithName("GetTodo")
+.WithOpenApi();
+
+
+app.MapGet("/todos", ([FromServices] TodoRepository repo) =>
+{
+    var todos = repo.List();
+
+    return Results.Ok(todos);
+})
+.WithName("ListTodos")
+.WithOpenApi();
+
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+
+public record Todo(string Id, string Name, bool Done);

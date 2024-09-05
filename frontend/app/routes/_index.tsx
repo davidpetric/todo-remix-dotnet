@@ -1,5 +1,4 @@
 import type { MetaFunction } from "@remix-run/node";
-import { c } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 import { useState } from "react";
 
 export const meta: MetaFunction = () => {
