@@ -1,5 +1,5 @@
 {
-  "name": "",
+  "name": "Todo",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -8,7 +8,8 @@
     "dev": "remix vite:dev",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "remix-serve ./build/server/index.js",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "gen-api-client": "npx @openapitools/openapi-generator-cli generate -i ../backend/openapi.json  -g typescript-axios -o ./app/client"
   },
   "dependencies": {
     "@remix-run/node": "^2.11.2",
@@ -19,6 +20,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.13.5",
     "@remix-run/dev": "^2.11.2",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
