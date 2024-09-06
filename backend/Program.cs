@@ -1,10 +1,24 @@
 using backend.Data;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Mime;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(x =>
+{
+    x.SwaggerDoc("v1",
+        new Microsoft.OpenApi.Models.OpenApiInfo
+        {
+            Version = "v1",
+            Title = "Todo API"
+        });
+
+    x.TagActionsBy(y =>
+    {
+        return [y.ActionDescriptor.DisplayName];
+    });
+});
 
 builder.Services.AddScoped<TodoRepository>();
 
@@ -15,7 +29,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(x =>
+    {
+        x.DocumentTitle = "Todo API";
+    });
 
     app.UseCors(opt =>
     {
@@ -27,21 +44,34 @@ app.UseHttpsRedirection();
 
 app.MapPost("/todos", ([FromServices] TodoRepository repo, [FromBody] Todo newTodo) =>
 {
-    var successOrErrror = repo.Insert(newTodo);
-    return successOrErrror.IsError ? Results.BadRequest() : Results.Ok();
+    var insertResponse = repo.Insert(newTodo);
+
+    return insertResponse.Match(
+        x => Results.CreatedAtRoute("/todos/{id}", newTodo.Id),
+        err => Results.BadRequest(
+            new ProblemDetails()
+            {
+                Detail = "",
+                Status = StatusCodes.Status400BadRequest
+            }));
 })
 .WithName("CreateTodo")
+.WithTags("Todo")
+.Accepts<Todo>(MediaTypeNames.Application.Json)
 .WithOpenApi();
 
 app.MapGet("/todos/{id}", ([FromServices] TodoRepository repo, [FromRoute] string id) =>
 {
-    var errorOrTodo = repo.Retrieve(id);
+    var todoResponse = repo.Retrieve(id);
 
-    return errorOrTodo.IsError
-        ? Results.BadRequest(errorOrTodo.Errors)
-        : Results.Ok(errorOrTodo.Value);
+    return todoResponse.Match(
+        t => Results.Ok(todoResponse.Value),
+        err => Results.BadRequest(todoResponse.Errors));
 })
 .WithName("GetTodo")
+.WithTags("Todo")
+.Produces<Todo>(StatusCodes.Status200OK)
+.ProducesProblem(StatusCodes.Status400BadRequest)
 .WithOpenApi();
 
 
@@ -52,6 +82,8 @@ app.MapGet("/todos", ([FromServices] TodoRepository repo) =>
     return Results.Ok(todos);
 })
 .WithName("ListTodos")
+.WithTags("Todo")
+.Produces<IEnumerable<Todo>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)
 .WithOpenApi();
 
 

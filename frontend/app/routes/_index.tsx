@@ -1,10 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useEffect, useState } from "react";
-import { Configuration } from "~/client";
-import {
-  BackendVersion1000CultureneutralPublicKeyTokennullApi,
-  Todo,
-} from "~/client/api";
+import { Todo } from "~/client/api";
+import { apiClient } from "~/client/apiClient";
 
 export const meta: MetaFunction = () => {
   return [
@@ -33,18 +30,11 @@ export default function Index() {
 
   useEffect(() => {
     const fetchTodos = async () => {
-      // TODO: This is work in progress, move fast and test things
-      const config = new Configuration();
-      config.basePath = "https://localhost:7239";
+      const client = apiClient();
+      const response = await client.listTodos();
 
-      const apiClient =
-        new BackendVersion1000CultureneutralPublicKeyTokennullApi(config);
-
-      const response = await apiClient.listTodos();
-
-      // TODO: need to configure generator to map correct type
-      const data = response.data as Todo[];
-      setTodos(data);
+      const todos = response.data ?? [];
+      setTodos(todos);
     };
 
     fetchTodos();
@@ -54,7 +44,7 @@ export default function Index() {
     <div className="p-10 text-xl">
       <div className="max-h-100 overflow-auto">
         {todos
-          .filter((x) => x.id !== undefined)
+          .filter((x) => x.id)
           .map((t, i) => (
             <div
               key={t.id}
@@ -64,7 +54,7 @@ export default function Index() {
                 className="accent-green-400"
                 type="checkbox"
                 checked={t.done ?? false}
-                onChange={(e) => handleCheckboxChange(t.id, e.target.checked)}
+                onChange={(e) => handleCheckboxChange(t.id!, e.target.checked)}
               ></input>
               <span className="pl-2">{t.name}</span>
 
@@ -96,7 +86,7 @@ export default function Index() {
           onClick={() => {
             todos.push({
               id: Math.random().toString(),
-              todo: todoInput,
+              name: todoInput,
               done: false,
             });
             setTodoInput("");
