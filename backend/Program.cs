@@ -36,7 +36,9 @@ if (app.Environment.IsDevelopment())
 
     app.UseCors(opt =>
     {
-        opt.AllowAnyOrigin();
+        opt.AllowAnyOrigin()
+           .AllowAnyHeader()
+           .AllowAnyMethod();
     });
 }
 
@@ -47,7 +49,7 @@ app.MapPost("/todos", ([FromServices] TodoRepository repo, [FromBody] Todo newTo
     var insertResponse = repo.Insert(newTodo);
 
     return insertResponse.Match(
-        x => Results.CreatedAtRoute("/todos/{id}", newTodo.Id),
+        x => Results.CreatedAtRoute("GetTodo", new { newTodo.Id }),
         err => Results.BadRequest(
             new ProblemDetails()
             {

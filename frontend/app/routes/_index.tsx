@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useEffect, useState } from "react";
 import { Todo } from "~/client/api";
-import { apiClient } from "~/client/apiClient";
+import { apiClientFactory } from "~/client/apiClient";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,9 +11,12 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+const apiClient = apiClientFactory();
+
 export default function Index() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [todoInput, setTodoInput] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleCheckboxChange = (id: string, checked: boolean) => {
     const nextTodos = todos.map((t, i) => {
@@ -30,11 +33,12 @@ export default function Index() {
 
   useEffect(() => {
     const fetchTodos = async () => {
-      const client = apiClient();
-      const response = await client.listTodos();
+      setIsLoading(true);
+      const response = await apiClient.listTodos();
 
       const todos = response.data ?? [];
       setTodos(todos);
+      setIsLoading(false);
     };
 
     fetchTodos();
@@ -42,35 +46,40 @@ export default function Index() {
 
   return (
     <div className="p-10 text-xl">
-      <div className="max-h-100 overflow-auto">
-        {todos
-          .filter((x) => x.id)
-          .map((t, i) => (
-            <div
-              key={t.id}
-              className={" m-10 " + `${t.done ? "line-through" : ""}`}
-            >
-              <input
-                className="accent-green-400"
-                type="checkbox"
-                checked={t.done ?? false}
-                onChange={(e) => handleCheckboxChange(t.id!, e.target.checked)}
-              ></input>
-              <span className="pl-2">{t.name}</span>
-
-              <span
-                className="pl-2"
-                onClick={() => {
-                  setTodos((prevState) =>
-                    prevState.filter((prevItem) => prevItem.id !== t.id)
-                  );
-                }}
+      {isLoading && <h1>loading..</h1>}
+      {!isLoading && (
+        <div className="max-h-100 overflow-auto">
+          {todos
+            .filter((x) => x.id)
+            .map((t, i) => (
+              <div
+                key={t.id}
+                className={" m-10 " + `${t.done ? "line-through" : ""}`}
               >
-                🗑️
-              </span>
-            </div>
-          ))}
-      </div>
+                <input
+                  className="accent-green-400"
+                  type="checkbox"
+                  checked={t.done ?? false}
+                  onChange={(e) =>
+                    handleCheckboxChange(t.id!, e.target.checked)
+                  }
+                ></input>
+                <span className="pl-2">{t.name}</span>
+
+                <span
+                  className="pl-2"
+                  onClick={() => {
+                    setTodos((prevState) =>
+                      prevState.filter((prevItem) => prevItem.id !== t.id)
+                    );
+                  }}
+                >
+                  🗑️
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
 
       <div className="flex gap-10">
         <input
@@ -83,12 +92,16 @@ export default function Index() {
 
         <button
           className="bg-blue-950 block rounded-md dh-10 w-20"
-          onClick={() => {
-            todos.push({
+          onClick={async () => {
+            const todo: Todo = {
               id: Math.random().toString(),
               name: todoInput,
               done: false,
-            });
+            };
+
+            todos.push(todo);
+
+            const response = await apiClient.createTodo(todo);
             setTodoInput("");
           }}
         >
