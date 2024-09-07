@@ -44,6 +44,31 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapGet("/todos/{id}", ([FromServices] TodoRepository repo, [FromRoute] string id) =>
+{
+    var todoResponse = repo.Retrieve(id);
+
+    return todoResponse.Match(
+        t => Results.Ok(todoResponse.Value),
+        err => Results.BadRequest(todoResponse.Errors));
+})
+.WithName("GetTodo")
+.WithTags("Todo")
+.Produces<Todo>(StatusCodes.Status200OK)
+.ProducesProblem(StatusCodes.Status400BadRequest)
+.WithOpenApi();
+
+app.MapGet("/todos", ([FromServices] TodoRepository repo) =>
+{
+    var todos = repo.List();
+
+    return Results.Ok(todos);
+})
+.WithName("ListTodos")
+.WithTags("Todo")
+.Produces<IEnumerable<Todo>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)
+.WithOpenApi();
+
 app.MapPost("/todos", ([FromServices] TodoRepository repo, [FromBody] Todo newTodo) =>
 {
     var insertResponse = repo.Insert(newTodo);
@@ -62,34 +87,33 @@ app.MapPost("/todos", ([FromServices] TodoRepository repo, [FromBody] Todo newTo
 .Accepts<Todo>(MediaTypeNames.Application.Json)
 .WithOpenApi();
 
-app.MapGet("/todos/{id}", ([FromServices] TodoRepository repo, [FromRoute] string id) =>
-{
-    var todoResponse = repo.Retrieve(id);
-
-    return todoResponse.Match(
-        t => Results.Ok(todoResponse.Value),
-        err => Results.BadRequest(todoResponse.Errors));
-})
-.WithName("GetTodo")
+app.MapDelete("/todos/{id}", ([FromServices] TodoRepository repo, [FromRoute] string id)
+    => repo.Delete(id)
+        .Match(
+            deleted => Results.Ok(),
+            errors => Results.BadRequest(errors.FirstOrDefault().Code)
+         )
+)
+.WithName("DeleteTodo")
 .WithTags("Todo")
-.Produces<Todo>(StatusCodes.Status200OK)
-.ProducesProblem(StatusCodes.Status400BadRequest)
 .WithOpenApi();
 
-
-app.MapGet("/todos", ([FromServices] TodoRepository repo) =>
-{
-    var todos = repo.List();
-
-    return Results.Ok(todos);
-})
-.WithName("ListTodos")
+app.MapPost("/todos/{id}/done", (
+    [FromServices] TodoRepository repo,
+    [FromRoute] string id,
+    [FromBody] IsDoneTodoRequest req)
+    => repo.IsDone(id, req.Done)
+        .Match(
+            success => Results.Ok(),
+            errors => Results.BadRequest(errors.FirstOrDefault().Code)
+         )
+)
+.WithName("UpdateDone")
 .WithTags("Todo")
-.Produces<IEnumerable<Todo>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)
 .WithOpenApi();
-
 
 app.Run();
 
 
 public record Todo(string Id, string Name, bool Done);
+public record IsDoneTodoRequest(bool Done);

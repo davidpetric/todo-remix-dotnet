@@ -123,5 +123,47 @@ public class TodoRepository
 
         return con;
     }
+
+    public ErrorOr<Deleted> Delete(string id)
+    {
+        using var con = GetConnection();
+
+        var cmd = con.CreateCommand();
+        cmd.CommandText =
+            """
+                DELETE FROM TODO Where id = $id;
+            """;
+        cmd.Parameters.AddWithValue("$id", id);
+
+        int deletedCount = cmd.ExecuteNonQuery();
+
+        return deletedCount == 1
+            ? new Deleted()
+            : Error.NotFound($"Id: {id} not found.");
+    }
+
+    public ErrorOr<Updated> IsDone(string id, bool done)
+    {
+        using var con = GetConnection();
+
+        var cmd = con.CreateCommand();
+
+        cmd.CommandText =
+            """
+                UPDATE TODO
+                    SET done = $done
+                WHERE 
+                    Id = $id
+            """;
+
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.Parameters.AddWithValue("$done", done);
+
+        int updatedCount = cmd.ExecuteNonQuery();
+
+        return updatedCount == 1
+            ? new Updated()
+            : Error.Unexpected();
+    }
 }
 
