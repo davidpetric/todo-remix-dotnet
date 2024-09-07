@@ -20,11 +20,15 @@ builder.Services.AddSwaggerGen(x =>
     });
 });
 
+builder.Services.AddSingleton<DataDbContext>();
 builder.Services.AddScoped<TodoRepository>();
 
 builder.Services.AddCors();
 
 var app = builder.Build();
+
+var dataDbContext = app.Services.GetService<DataDbContext>();
+dataDbContext!.Init();
 
 if (app.Environment.IsDevelopment())
 {
@@ -58,12 +62,9 @@ app.MapGet("/todos/{id}", ([FromServices] TodoRepository repo, [FromRoute] strin
 .ProducesProblem(StatusCodes.Status400BadRequest)
 .WithOpenApi();
 
-app.MapGet("/todos", ([FromServices] TodoRepository repo) =>
-{
-    var todos = repo.List();
-
-    return Results.Ok(todos);
-})
+app.MapGet("/todos",
+    ([FromServices] TodoRepository repo) => Results.Ok(repo.List())
+)
 .WithName("ListTodos")
 .WithTags("Todo")
 .Produces<IEnumerable<Todo>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)
@@ -115,5 +116,9 @@ app.MapPost("/todos/{id}/done", (
 app.Run();
 
 
-public record Todo(string Id, string Name, bool Done);
+public record Todo(string Id, string Name, bool Done)
+{
+    public Todo() : this(default!, default!, default) { }
+}
+
 public record IsDoneTodoRequest(bool Done);
